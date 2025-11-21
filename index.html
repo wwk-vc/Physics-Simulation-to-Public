@@ -1,32 +1,100 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Physics Simulation by WWK</title>
     <style>
-        /* Simple styling to match the image */
+        /* 1. GLOBAL STYLES: Sets the font and background */
         body {
-            font-family: "Times New Roman", Times, serif;
-            margin: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+            margin: 0;
+            padding: 0;
+            /* A professional gradient background (Blue to Purple) */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; /* Ensures bg covers whole screen */
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
+
+        /* 2. THE CONTAINER: The white box in the middle */
+        .container {
+            background-color: #ffffff;
+            width: 90%;
+            max-width: 600px; /* Keeps it from getting too wide on big screens */
+            padding: 40px;
+            border-radius: 15px; /* Rounded corners */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); /* Drop shadow for depth */
+            text-align: center;
+        }
+
+        /* 3. TYPOGRAPHY */
         h1 {
-            font-size: 2em;
-            font-weight: bold;
+            color: #333;
+            margin-top: 0;
+            font-size: 2.2em;
+            margin-bottom: 10px;
         }
-        a {
-            display: block; /* Puts each link on a new line */
-            margin-bottom: 15px; /* Adds space between links */
-            font-size: 1.2em;
-            color: blue;
-            text-decoration: underline;
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+        /* 4. BUTTON LINKS: Making the links look professional */
+        .link-card {
+            display: block; /* Makes the whole area clickable */
+            background-color: #f8f9fa; /* Light grey background */
+            color: #333; /* Dark text */
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            text-decoration: none; /* Removes the underline */
+            font-weight: 600;
+            transition: all 0.3s ease; /* Smooth animation */
+            border-left: 5px solid #667eea; /* A colorful accent strip on the left */
+            text-align: left;
+        }
+
+        /* 5. HOVER EFFECT: What happens when mouse goes over link */
+        .link-card:hover {
+            background-color: #667eea; /* Turns blue/purple */
+            color: white; /* Text turns white */
+            transform: translateY(-3px); /* Moves up slightly */
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Optional: Style for a banner image */
+        .banner-img {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Physics Simulation by WWK</h1>
-    
-    <p><a href="WWK_Diffraction-Grating.html">Diffraction-Grating</a></p>
-    
+    <div class="container">
+        <h1>Physics Simulation</h1>
+        <p class="subtitle">Curated by WWK</p>
+        
+        <hr style="border: 0; height: 1px; background: #eee; margin-bottom: 25px;">
+
+        <a href="WWK_Diffraction-Grating.html" class="link-card">
+            Diffraction Grating
+        </a>
+        
+        <a href="#" class="link-card">
+            Newton's Laws of Motion
+        </a>
+
+        <a href="#" class="link-card">
+            Projectile Motion
+        </a>
+
+    </div>
 
 </body>
 </html>
