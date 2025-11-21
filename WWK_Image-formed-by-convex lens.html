@@ -72,7 +72,7 @@
         <p class="text-slate-600 text-sm md:text-base">Adjust parameters below to observe light refraction and image formation</p>
     </header>
 
-    <!-- Main Container: Changed max-width to 7xl for 3-column layout -->
+    <!-- Main Container -->
     <main class="w-full max-w-7xl bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row">
         
         <!-- LEFT COLUMN: Information (Formulas & Table) -->
@@ -250,18 +250,18 @@
                 <div>
                     <div class="flex justify-between mb-1">
                         <label class="text-sm font-medium text-slate-600">Focal Length (f)</label>
-                        <span id="fValue" class="text-sm font-bold text-blue-600">100</span>
+                        <span id="fValue" class="text-sm font-bold text-blue-600">10 cm</span>
                     </div>
-                    <input type="range" id="fInput" min="50" max="200" value="100" class="w-full">
+                    <input type="range" id="fInput" min="5" max="20" step="0.5" value="10" class="w-full">
                 </div>
 
                 <!-- Object Distance Control -->
                 <div>
                     <div class="flex justify-between mb-1">
                         <label class="text-sm font-medium text-slate-600">Object Distance (u)</label>
-                        <span id="doValue" class="text-sm font-bold text-red-500">200</span>
+                        <span id="doValue" class="text-sm font-bold text-red-500">20 cm</span>
                     </div>
-                    <input type="range" id="doInput" min="0" max="450" value="200" class="w-full">
+                    <input type="range" id="doInput" min="0" max="45" step="0.5" value="20" class="w-full">
                     <div class="flex justify-between text-[10px] text-slate-400 mt-1">
                         <span>Lens</span>
                         <span>Far Left</span>
@@ -272,9 +272,9 @@
                 <div>
                     <div class="flex justify-between mb-1">
                         <label class="text-sm font-medium text-slate-600">Object Height (ho)</label>
-                        <span id="hoValue" class="text-sm font-bold text-red-500">60</span>
+                        <span id="hoValue" class="text-sm font-bold text-red-500">6 cm</span>
                     </div>
-                    <input type="range" id="hoInput" min="20" max="100" value="60" class="w-full">
+                    <input type="range" id="hoInput" min="1" max="12" step="0.5" value="6" class="w-full">
                 </div>
             </div>
 
@@ -340,13 +340,15 @@
 
         // Canvas State
         let width, height, centerX, centerY;
+        // SCALE FACTOR: 1 cm = 10 pixels
+        const pxPerCm = 10;
 
         function resizeCanvas() {
             const rect = svg.getBoundingClientRect();
             width = rect.width;
             height = rect.height;
             
-            // RESTORED: Center X to actual center (width / 2)
+            // Center X to actual center
             centerX = width / 2; 
             centerY = height / 2;
             
@@ -356,7 +358,7 @@
 
         function drawGrid() {
             els.grid.innerHTML = '';
-            const step = 50;
+            const step = 50; // 5 cm steps visual grid
             // Vertical lines
             for (let x = centerX % step; x < width; x += step) {
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -374,35 +376,34 @@
         }
 
         function updateSimulation() {
-            // 1. Get Values
-            const f = parseFloat(fInput.value);
-            const u = parseFloat(doInput.value); // Object Distance (u)
-            const ho = parseFloat(hoInput.value);
+            // 1. Get Values (in CM)
+            const f_cm = parseFloat(fInput.value);
+            const u_cm = parseFloat(doInput.value); // Object Distance (u)
+            const ho_cm = parseFloat(hoInput.value);
 
             // Update UI Labels
-            fValueSpan.textContent = f;
-            doValueSpan.textContent = u;
-            hoValueSpan.textContent = ho;
+            fValueSpan.textContent = f_cm + " cm";
+            doValueSpan.textContent = u_cm + " cm";
+            hoValueSpan.textContent = ho_cm + " cm";
 
             // 2. Calculation (Lens Formula: 1/u + 1/v = 1/f => 1/v = 1/f - 1/u)
-            let v = 0;
+            let v_cm = 0;
             let isVirtual = false;
             let isInfinite = false;
 
-            if (Math.abs(u - f) < 1) {
+            if (Math.abs(u_cm - f_cm) < 0.01) { // tolerance for float
                 isInfinite = true;
             } else {
                 // v = (f * u) / (u - f)
-                v = (f * u) / (u - f);
+                v_cm = (f_cm * u_cm) / (u_cm - f_cm);
             }
 
-            // Sign Convention check for internal logic
-            // Here v > 0 means Real Image (Right side), v < 0 means Virtual (Left side)
-            if (v < 0) isVirtual = true;
+            // Sign Convention: v < 0 means Virtual
+            if (v_cm < 0) isVirtual = true;
 
             // Magnification M = -v/u
-            const M = isInfinite ? Infinity : -v / u;
-            const hi = M * ho; // Image Height (Negative means inverted)
+            const M = isInfinite ? Infinity : -v_cm / u_cm;
+            const hi_cm = M * ho_cm; // Image Height in cm
 
             // 3. Update Data Panel
             if (isInfinite) {
@@ -411,7 +412,7 @@
                 typeDisplay.textContent = "No Image (Parallel)";
                 typeDisplay.className = "font-bold text-slate-500 text-right";
             } else {
-                diDisplay.textContent = Math.abs(v).toFixed(1);
+                diDisplay.textContent = Math.abs(v_cm).toFixed(1) + " cm";
                 mDisplay.textContent = Math.abs(M).toFixed(2) + "x";
                 
                 let typeStr = "";
@@ -429,7 +430,12 @@
                 typeDisplay.className = `font-bold ${typeColor} text-right`;
             }
 
-            // 4. Drawing
+            // 4. Drawing (Convert CM to Pixels)
+            const f = f_cm * pxPerCm;
+            const u = u_cm * pxPerCm;
+            const ho = ho_cm * pxPerCm;
+            const v = v_cm * pxPerCm;
+            const hi = hi_cm * pxPerCm;
 
             // Lens
             const lensH = 250;
@@ -475,7 +481,6 @@
                 els.imgLabel.style.display = 'block';
                 const imgX = centerX + v; 
                 // SVG Y increases downwards. centerY - hi. 
-                // If Inverted, hi is negative, so centerY - (-val) = centerY + val (downwards).
                 const imgTipY = centerY - hi; 
                 
                 els.img.setAttribute("x1", imgX); els.img.setAttribute("y1", centerY);
@@ -521,7 +526,7 @@
 
             // Ray 3: Through F -> Parallel
             if (showR3) {
-                if (Math.abs(u - f) > 1) {
+                if (Math.abs(u_cm - f_cm) > 0.1) { // tolerance check on cm
                     const slope3 = (centerY - objTipY) / (centerX - f - objX);
                     const y_lens_hit = objTipY + slope3 * (centerX - objX);
                     
@@ -540,7 +545,7 @@
             // --- Virtual Image Backtracing ---
             if (isVirtual && !isInfinite) {
                 const imgX = centerX + v;
-                const imgTipY = centerY - hi; // Note: hi is positive for Upright Virtual
+                const imgTipY = centerY - hi; 
 
                 // Backtrace Ray 1
                 if (showR1) {
@@ -556,8 +561,6 @@
 
                 // Backtrace Ray 3
                 if (showR3 && els.ray3.getAttribute("opacity") !== "0") {
-                    // Ray 3 exits parallel, so backtrace is horizontal
-                    // It connects lens exit point to image tip
                     const slope3 = (centerY - objTipY) / (centerX - f - objX);
                     const y_lens_hit = objTipY + slope3 * (centerX - objX);
                     els.ray3_v.setAttribute("d", `M ${centerX},${y_lens_hit} L ${imgX},${imgTipY}`);
