@@ -19,14 +19,21 @@
             cursor: pointer;
             margin-top: -6px; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            border: 2px solid white; 
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
             height: 4px;
             cursor: pointer;
-            background: #e2e8f0;
+            background: transparent; /* Transparent track to show gradient below if needed, but here we separate them */
             border-radius: 2px;
         }
+        /* Custom styling for the wavelength slider track to appear invisible over the gradient if overlaid, 
+           but here we stack them. Standard styling: */
+        #wlInput::-webkit-slider-runnable-track {
+            background: #e2e8f0;
+        }
+
         .readout-box {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -247,11 +254,34 @@
                         <label class="text-sm font-medium text-slate-600">Wavelength</label>
                         <span id="wlDisplay" class="text-sm font-bold text-purple-600">400 nm</span>
                     </div>
-                    <div class="w-full h-2 rounded mb-2" style="background: linear-gradient(to right, #8b5cf6, #3b82f6, #10b981, #eab308, #ef4444, #7f1d1d);"></div>
+                    
+                    <!-- Color Bar with Markers -->
+                    <div class="relative w-full h-4 mb-2 rounded overflow-hidden border border-slate-200">
+                        <!-- Accurate Spectrum Gradient -->
+                        <div class="absolute inset-0" style="background: linear-gradient(to right, 
+                            #94a3b8 0%, #94a3b8 40%, 
+                            #8b5cf6 40%, 
+                            #3b82f6 50%, 
+                            #10b981 60%, 
+                            #eab308 70%, 
+                            #ef4444 80%, 
+                            #7f1d1d 80%, #7f1d1d 100%);">
+                        </div>
+                        
+                        <!-- Markers for Visible Light Range -->
+                        <!-- 400nm (40%) -->
+                        <div class="absolute top-0 bottom-0 w-0.5 bg-white/50 border-l border-slate-700" style="left: 40%;"></div>
+                        <!-- 700nm (80%) -->
+                        <div class="absolute top-0 bottom-0 w-0.5 bg-white/50 border-l border-slate-700" style="left: 80%;"></div>
+                    </div>
+
                     <input type="range" id="wlInput" min="100" max="850" value="400" step="1" class="w-full">
-                    <div class="flex justify-between text-[10px] text-slate-400">
+                    
+                    <!-- Labels -->
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1 relative h-4">
                         <span>UV</span>
-                        <span>Visible</span>
+                        <span style="position: absolute; left: 40%; transform: translateX(-50%); font-weight: bold; color: #64748b;">400nm</span>
+                        <span style="position: absolute; left: 80%; transform: translateX(-50%); font-weight: bold; color: #64748b;">700nm</span>
                         <span>IR</span>
                     </div>
                 </div>
@@ -286,7 +316,7 @@
                     <li><strong>Wavelength:</strong> Controls photon energy.</li>
                     <li><strong>Intensity:</strong> Controls number of photons (Saturation Current).</li>
                     <li><strong>Voltage:</strong> Accelerates or stops electrons.</li>
-                    <li>Observe the graph on the left to see the theoretical curve vs simulated values.</li>
+                    <li>Observe the graph on the left to see the theoretical curve.</li>
                 </ul>
             </div>
 
