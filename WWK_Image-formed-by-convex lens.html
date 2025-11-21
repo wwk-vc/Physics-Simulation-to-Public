@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convex Lens Interactive Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+
+        .label-text {
+            font-family: sans-serif;
+            font-size: 12px;
+            fill: #64748b;
+        }
+
+        /* Fraction Display Style */
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 2px;
+            font-size: 0.9em;
+        }
+        .numerator {
+            border-bottom: 1px solid #64748b;
+            padding-bottom: 1px;
+            width: 100%;
+            text-align: center;
+        }
+        .denominator {
+            padding-top: 1px;
+            width: 100%;
+            text-align: center;
+        }
+        .formula-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col items-center p-4 font-sans text-slate-800">
+
+    <header class="mb-6 text-center">
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">Convex Lens Physics</h1>
+        <p class="text-slate-600 text-sm md:text-base">Adjust parameters below to observe light refraction and image formation</p>
+    </header>
+
+    <!-- Main Container: Changed max-width to 7xl for 3-column layout -->
+    <main class="w-full max-w-7xl bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row">
+        
+        <!-- LEFT COLUMN: Information (Formulas & Table) -->
+        <div class="w-full md:w-72 p-6 bg-white border-b md:border-b-0 md:border-r border-slate-200 overflow-y-auto flex flex-col gap-6">
+            
+            <!-- Physics Formulas Section -->
+            <div class="text-sm text-slate-600">
+                <h2 class="font-bold text-slate-700 border-b pb-2 mb-3">Physics Formulas</h2>
+                
+                <!-- Lens Formula -->
+                <div class="formula-row justify-center font-serif italic mb-4 text-slate-800">
+                    <div class="fraction"><span class="numerator">1</span><span class="denominator">u</span></div>
+                    <span>+</span>
+                    <div class="fraction"><span class="numerator">1</span><span class="denominator">v</span></div>
+                    <span>=</span>
+                    <div class="fraction"><span class="numerator">1</span><span class="denominator">f</span></div>
+                </div>
+
+                <!-- Magnification Formula -->
+                <div class="formula-row justify-center font-serif italic text-slate-800">
+                    <span>M</span> <span>=</span>
+                    <div class="fraction"><span class="numerator">h<sub>i</sub></span><span class="denominator">h<sub>o</sub></span></div>
+                    <span>=</span>
+                    <span>-</span>
+                    <div class="fraction"><span class="numerator">v</span><span class="denominator">u</span></div>
+                </div>
+            </div>
+
+            <!-- Sign Convention Table -->
+            <div>
+                <h2 class="font-bold text-slate-700 border-b pb-2 mb-3 text-sm">Sign Convention</h2>
+                <div class="bg-slate-50 rounded border border-slate-200 overflow-hidden">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-semibold">
+                            <tr>
+                                <th class="p-2 border-b">Var</th>
+                                <th class="p-2 border-b">Positive (+)</th>
+                                <th class="p-2 border-b">Negative (-)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-600">
+                            <tr>
+                                <td class="p-2 font-mono font-bold">u</td>
+                                <td class="p-2">Real Object</td>
+                                <td class="p-2 text-slate-400">-</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-mono font-bold">v</td>
+                                <td class="p-2 text-blue-600">Real Image</td>
+                                <td class="p-2 text-purple-600">Virtual Image</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-mono font-bold">f</td>
+                                <td class="p-2">Convex Lens</td>
+                                <td class="p-2 text-slate-400">Concave Lens</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-mono font-bold">M</td>
+                                <td class="p-2">Upright</td>
+                                <td class="p-2">Inverted</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- MIDDLE COLUMN: Canvas Region -->
+        <div class="relative flex-grow bg-slate-100 h-[400px] md:h-[600px]">
+            <!-- SVG Canvas -->
+            <svg id="lensCanvas" class="w-full h-full select-none" preserveAspectRatio="xMidYMid slice">
+                <!-- Definitions for Arrowheads -->
+                <defs>
+                    <marker id="arrowhead-ray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" opacity="0.7"/>
+                    </marker>
+                    <marker id="arrowhead-obj" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+                    </marker>
+                    <marker id="arrowhead-img" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+                    </marker>
+                </defs>
+
+                <!-- Grid Background (Generated by JS) -->
+                <g id="gridGroup" stroke="#e2e8f0" stroke-width="1"></g>
+
+                <!-- Principal Axis -->
+                <line id="principalAxis" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5,5"></line>
+
+                <!-- Lens -->
+                <path id="lensShape" fill="#e0f2fe" stroke="#3b82f6" stroke-width="2" opacity="0.6"></path>
+                <line id="lensCenterLine" stroke="#3b82f6" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"></line>
+
+                <!-- Focal Points -->
+                <g id="focalPoints">
+                    <circle id="f1" r="3" fill="#ef4444"></circle>
+                    <text id="f1Text" class="label-text" dy="15" text-anchor="middle">F</text>
+                    <circle id="f2" r="3" fill="#ef4444"></circle>
+                    <text id="f2Text" class="label-text" dy="15" text-anchor="middle">F'</text>
+                    <!-- 2F Marker (Left) -->
+                    <circle id="2f1" r="2" fill="#94a3b8"></circle>
+                    <text id="2f1Text" class="label-text" dy="15" text-anchor="middle">2F</text>
+                    <!-- 2F Marker (Right) -->
+                    <circle id="2f2" r="2" fill="#94a3b8"></circle>
+                    <text id="2f2Text" class="label-text" dy="15" text-anchor="middle">2F'</text>
+                </g>
+
+                <!-- Object -->
+                <line id="objectLine" stroke="#ef4444" stroke-width="4" marker-end="url(#arrowhead-obj)"></line>
+                <text id="objLabel" class="label-text font-bold" fill="#ef4444" text-anchor="middle">Object</text>
+
+                <!-- Image -->
+                <line id="imageLine" stroke="#3b82f6" stroke-width="4" marker-end="url(#arrowhead-img)"></line>
+                <text id="imgLabel" class="label-text font-bold" fill="#3b82f6" text-anchor="middle">Image</text>
+
+                <!-- Rays -->
+                <g id="rays" fill="none" stroke-width="2" opacity="0.8">
+                    <!-- Ray 1: Parallel to axis -> Through focal point -->
+                    <g id="ray1Group">
+                        <path id="ray1" stroke="#10b981"></path> 
+                        <path id="ray1_virtual" stroke="#10b981" stroke-dasharray="5,5" opacity="0.5"></path>
+                    </g>
+
+                    <!-- Ray 2: Through optical center (undeflected) -->
+                    <g id="ray2Group">
+                        <path id="ray2" stroke="#f59e0b"></path>
+                        <path id="ray2_virtual" stroke="#f59e0b" stroke-dasharray="5,5" opacity="0.5"></path>
+                    </g>
+
+                    <!-- Ray 3: Through focal point -> Parallel to axis -->
+                    <g id="ray3Group">
+                        <path id="ray3" stroke="#8b5cf6"></path>
+                        <path id="ray3_virtual" stroke="#8b5cf6" stroke-dasharray="5,5" opacity="0.5"></path>
+                    </g>
+                </g>
+            </svg>
+            
+            <!-- Quick Legend (Static) -->
+            <div class="absolute top-4 right-4 bg-white/80 backdrop-blur p-2 rounded shadow text-xs text-slate-500 pointer-events-none">
+                <div class="font-semibold mb-1 text-slate-700">Ray Color Guide</div>
+                <div class="flex items-center gap-2 mb-1"><span class="w-3 h-1 bg-emerald-500"></span> Parallel Ray</div>
+                <div class="flex items-center gap-2 mb-1"><span class="w-3 h-1 bg-amber-500"></span> Center Ray</div>
+                <div class="flex items-center gap-2"><span class="w-3 h-1 bg-violet-500"></span> Focal Ray</div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Controls -->
+        <div class="w-full md:w-80 p-6 bg-white flex flex-col gap-6 overflow-y-auto border-t md:border-t-0 md:border-l border-slate-200">
+            
+            <!-- Ray Visibility Controls -->
+            <div>
+                <h2 class="font-bold text-slate-700 border-b pb-2 mb-3">Ray Visibility</h2>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                        <input type="checkbox" id="toggleRay1" checked class="accent-emerald-500 w-4 h-4">
+                        <span class="text-sm text-slate-700">Parallel Ray (Green)</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                        <input type="checkbox" id="toggleRay2" checked class="accent-amber-500 w-4 h-4">
+                        <span class="text-sm text-slate-700">Center Ray (Orange)</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                        <input type="checkbox" id="toggleRay3" checked class="accent-violet-500 w-4 h-4">
+                        <span class="text-sm text-slate-700">Focal Ray (Purple)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-bold text-slate-700 border-b pb-2">Parameters</h2>
+                
+                <!-- Focal Length Control -->
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm font-medium text-slate-600">Focal Length (f)</label>
+                        <span id="fValue" class="text-sm font-bold text-blue-600">100</span>
+                    </div>
+                    <input type="range" id="fInput" min="50" max="200" value="100" class="w-full">
+                </div>
+
+                <!-- Object Distance Control -->
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm font-medium text-slate-600">Object Distance (u)</label>
+                        <span id="doValue" class="text-sm font-bold text-red-500">200</span>
+                    </div>
+                    <input type="range" id="doInput" min="0" max="450" value="200" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>Lens</span>
+                        <span>Far Left</span>
+                    </div>
+                </div>
+
+                <!-- Object Height Control -->
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm font-medium text-slate-600">Object Height (ho)</label>
+                        <span id="hoValue" class="text-sm font-bold text-red-500">60</span>
+                    </div>
+                    <input type="range" id="hoInput" min="20" max="100" value="60" class="w-full">
+                </div>
+            </div>
+
+            <div class="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <h2 class="font-bold text-slate-700 border-b pb-2 border-slate-200">Image Properties</h2>
+                
+                <div class="grid grid-cols-2 gap-y-3 text-sm">
+                    <div class="text-slate-500">Image Distance (v):</div>
+                    <div id="diDisplay" class="font-mono font-bold text-slate-800 text-right">--</div>
+
+                    <div class="text-slate-500">Magnification (M):</div>
+                    <div id="mDisplay" class="font-mono font-bold text-slate-800 text-right">--</div>
+
+                    <div class="text-slate-500">Image Type:</div>
+                    <div id="typeDisplay" class="font-bold text-blue-600 text-right">--</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements
+        const svg = document.getElementById('lensCanvas');
+        const fInput = document.getElementById('fInput');
+        const doInput = document.getElementById('doInput');
+        const hoInput = document.getElementById('hoInput');
+        
+        // Toggles
+        const toggleRay1 = document.getElementById('toggleRay1');
+        const toggleRay2 = document.getElementById('toggleRay2');
+        const toggleRay3 = document.getElementById('toggleRay3');
+
+        // Display Elements
+        const fValueSpan = document.getElementById('fValue');
+        const doValueSpan = document.getElementById('doValue');
+        const hoValueSpan = document.getElementById('hoValue');
+        const diDisplay = document.getElementById('diDisplay');
+        const mDisplay = document.getElementById('mDisplay');
+        const typeDisplay = document.getElementById('typeDisplay');
+
+        // SVG Groups/Elements
+        const els = {
+            axis: document.getElementById('principalAxis'),
+            lens: document.getElementById('lensShape'),
+            lensCenter: document.getElementById('lensCenterLine'),
+            f1: document.getElementById('f1'), f1Text: document.getElementById('f1Text'),
+            f2: document.getElementById('f2'), f2Text: document.getElementById('f2Text'),
+            f2_2: document.getElementById('2f1'), f2_2Text: document.getElementById('2f1Text'),
+            f2_2_right: document.getElementById('2f2'), f2_2Text_right: document.getElementById('2f2Text'),
+            obj: document.getElementById('objectLine'),
+            objLabel: document.getElementById('objLabel'),
+            img: document.getElementById('imageLine'),
+            imgLabel: document.getElementById('imgLabel'),
+            ray1Group: document.getElementById('ray1Group'),
+            ray1: document.getElementById('ray1'), ray1_v: document.getElementById('ray1_virtual'),
+            ray2Group: document.getElementById('ray2Group'),
+            ray2: document.getElementById('ray2'), ray2_v: document.getElementById('ray2_virtual'),
+            ray3Group: document.getElementById('ray3Group'),
+            ray3: document.getElementById('ray3'), ray3_v: document.getElementById('ray3_virtual'),
+            grid: document.getElementById('gridGroup')
+        };
+
+        // Canvas State
+        let width, height, centerX, centerY;
+
+        function resizeCanvas() {
+            const rect = svg.getBoundingClientRect();
+            width = rect.width;
+            height = rect.height;
+            
+            // RESTORED: Center X to actual center (width / 2)
+            centerX = width / 2; 
+            centerY = height / 2;
+            
+            drawGrid();
+            updateSimulation();
+        }
+
+        function drawGrid() {
+            els.grid.innerHTML = '';
+            const step = 50;
+            // Vertical lines
+            for (let x = centerX % step; x < width; x += step) {
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", x); line.setAttribute("y1", 0);
+                line.setAttribute("x2", x); line.setAttribute("y2", height);
+                els.grid.appendChild(line);
+            }
+            // Horizontal lines
+            for (let y = centerY % step; y < height; y += step) {
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", 0); line.setAttribute("y1", y);
+                line.setAttribute("x2", width); line.setAttribute("y2", y);
+                els.grid.appendChild(line);
+            }
+        }
+
+        function updateSimulation() {
+            // 1. Get Values
+            const f = parseFloat(fInput.value);
+            const u = parseFloat(doInput.value); // Object Distance (u)
+            const ho = parseFloat(hoInput.value);
+
+            // Update UI Labels
+            fValueSpan.textContent = f;
+            doValueSpan.textContent = u;
+            hoValueSpan.textContent = ho;
+
+            // 2. Calculation (Lens Formula: 1/u + 1/v = 1/f => 1/v = 1/f - 1/u)
+            let v = 0;
+            let isVirtual = false;
+            let isInfinite = false;
+
+            if (Math.abs(u - f) < 1) {
+                isInfinite = true;
+            } else {
+                // v = (f * u) / (u - f)
+                v = (f * u) / (u - f);
+            }
+
+            // Sign Convention check for internal logic
+            // Here v > 0 means Real Image (Right side), v < 0 means Virtual (Left side)
+            if (v < 0) isVirtual = true;
+
+            // Magnification M = -v/u
+            const M = isInfinite ? Infinity : -v / u;
+            const hi = M * ho; // Image Height (Negative means inverted)
+
+            // 3. Update Data Panel
+            if (isInfinite) {
+                diDisplay.textContent = "∞ (Infinity)";
+                mDisplay.textContent = "∞";
+                typeDisplay.textContent = "No Image (Parallel)";
+                typeDisplay.className = "font-bold text-slate-500 text-right";
+            } else {
+                diDisplay.textContent = Math.abs(v).toFixed(1);
+                mDisplay.textContent = Math.abs(M).toFixed(2) + "x";
+                
+                let typeStr = "";
+                let typeColor = "";
+                
+                if (isVirtual) {
+                    typeStr = "Upright Magnified Virtual";
+                    typeColor = "text-purple-600";
+                } else {
+                    let sizeDesc = (Math.abs(M) > 1.05 ? "Magnified" : (Math.abs(M) < 0.95 ? "Diminished" : "Same Size"));
+                    typeStr = `Inverted ${sizeDesc} Real`;
+                    typeColor = "text-blue-600";
+                }
+                typeDisplay.textContent = typeStr;
+                typeDisplay.className = `font-bold ${typeColor} text-right`;
+            }
+
+            // 4. Drawing
+
+            // Lens
+            const lensH = 250;
+            const lensW = 30;
+            const pathData = `M ${centerX} ${centerY - lensH/2} 
+                              Q ${centerX + lensW} ${centerY} ${centerX} ${centerY + lensH/2} 
+                              Q ${centerX - lensW} ${centerY} ${centerX} ${centerY - lensH/2}`;
+            els.lens.setAttribute("d", pathData);
+            
+            els.axis.setAttribute("x1", 0); els.axis.setAttribute("y1", centerY);
+            els.axis.setAttribute("x2", width); els.axis.setAttribute("y2", centerY);
+            
+            els.lensCenter.setAttribute("x1", centerX); els.lensCenter.setAttribute("y1", centerY - lensH/2 - 20);
+            els.lensCenter.setAttribute("x2", centerX); els.lensCenter.setAttribute("y2", centerY + lensH/2 + 20);
+
+            // Focal Points
+            els.f1.setAttribute("cx", centerX - f); els.f1.setAttribute("cy", centerY);
+            els.f1Text.setAttribute("x", centerX - f); els.f1Text.setAttribute("y", centerY + 10);
+            
+            els.f2.setAttribute("cx", centerX + f); els.f2.setAttribute("cy", centerY);
+            els.f2Text.setAttribute("x", centerX + f); els.f2Text.setAttribute("y", centerY + 10);
+
+            els.f2_2.setAttribute("cx", centerX - 2*f); els.f2_2.setAttribute("cy", centerY);
+            els.f2_2Text.setAttribute("x", centerX - 2*f); els.f2_2Text.setAttribute("y", centerY + 10);
+
+            els.f2_2_right.setAttribute("cx", centerX + 2*f); els.f2_2_right.setAttribute("cy", centerY);
+            els.f2_2Text_right.setAttribute("x", centerX + 2*f); els.f2_2Text_right.setAttribute("y", centerY + 10);
+
+            // Object (Placed at centerX - u)
+            const objX = centerX - u;
+            const objTipY = centerY - ho;
+            
+            els.obj.setAttribute("x1", objX); els.obj.setAttribute("y1", centerY);
+            els.obj.setAttribute("x2", objX); els.obj.setAttribute("y2", objTipY);
+            els.objLabel.setAttribute("x", objX); els.objLabel.setAttribute("y", centerY + 20);
+
+            // Image (Placed at centerX + v)
+            if (isInfinite) {
+                els.img.style.display = 'none';
+                els.imgLabel.style.display = 'none';
+            } else {
+                els.img.style.display = 'block';
+                els.imgLabel.style.display = 'block';
+                const imgX = centerX + v; 
+                // SVG Y increases downwards. centerY - hi. 
+                // If Inverted, hi is negative, so centerY - (-val) = centerY + val (downwards).
+                const imgTipY = centerY - hi; 
+                
+                els.img.setAttribute("x1", imgX); els.img.setAttribute("y1", centerY);
+                els.img.setAttribute("x2", imgX); els.img.setAttribute("y2", imgTipY);
+                els.imgLabel.setAttribute("x", imgX); els.imgLabel.setAttribute("y", centerY + 20);
+                
+                if (isVirtual) {
+                    els.img.setAttribute("stroke-dasharray", "5,5");
+                    els.img.setAttribute("opacity", "0.6");
+                } else {
+                    els.img.removeAttribute("stroke-dasharray");
+                    els.img.setAttribute("opacity", "1");
+                }
+            }
+
+            // --- Ray Visibility Check ---
+            const showR1 = toggleRay1.checked;
+            const showR2 = toggleRay2.checked;
+            const showR3 = toggleRay3.checked;
+
+            els.ray1Group.style.display = showR1 ? 'inline' : 'none';
+            els.ray2Group.style.display = showR2 ? 'inline' : 'none';
+            els.ray3Group.style.display = showR3 ? 'inline' : 'none';
+
+            // --- Drawing Rays ---
+            const farRight = width + 500;
+            
+            // Ray 1: Parallel -> F'
+            if (showR1) {
+                const ray1_p1 = `${objX},${objTipY}`;
+                const ray1_p2 = `${centerX},${objTipY}`; // Hits lens at height of object
+                const slope1 = (centerY - objTipY) / f; // Passes through (centerX+f, centerY)
+                const ray1_endY = centerY + slope1 * (farRight - (centerX + f));
+                els.ray1.setAttribute("d", `M ${ray1_p1} L ${ray1_p2} L ${farRight},${ray1_endY}`);
+            }
+
+            // Ray 2: Optical Center
+            if (showR2) {
+                const slope2 = (centerY - objTipY) / (centerX - objX);
+                const ray2_endY = centerY + slope2 * (farRight - centerX);
+                els.ray2.setAttribute("d", `M ${objX},${objTipY} L ${farRight},${ray2_endY}`);
+            }
+
+            // Ray 3: Through F -> Parallel
+            if (showR3) {
+                if (Math.abs(u - f) > 1) {
+                    const slope3 = (centerY - objTipY) / (centerX - f - objX);
+                    const y_lens_hit = objTipY + slope3 * (centerX - objX);
+                    
+                    // Check if hits lens reasonably
+                    if(Math.abs(y_lens_hit - centerY) < lensH * 1.5) {
+                        els.ray3.setAttribute("opacity", "0.8");
+                        els.ray3.setAttribute("d", `M ${objX},${objTipY} L ${centerX},${y_lens_hit} L ${farRight},${y_lens_hit}`);
+                    } else {
+                        els.ray3.setAttribute("opacity", "0");
+                    }
+                } else {
+                    els.ray3.setAttribute("opacity", "0");
+                }
+            }
+
+            // --- Virtual Image Backtracing ---
+            if (isVirtual && !isInfinite) {
+                const imgX = centerX + v;
+                const imgTipY = centerY - hi; // Note: hi is positive for Upright Virtual
+
+                // Backtrace Ray 1
+                if (showR1) {
+                    els.ray1_v.setAttribute("d", `M ${centerX},${objTipY} L ${imgX},${imgTipY}`);
+                    els.ray1_v.style.display = 'block';
+                } else els.ray1_v.style.display = 'none';
+
+                // Backtrace Ray 2
+                if (showR2) {
+                    els.ray2_v.setAttribute("d", `M ${centerX},${centerY} L ${imgX},${imgTipY}`);
+                    els.ray2_v.style.display = 'block';
+                } else els.ray2_v.style.display = 'none';
+
+                // Backtrace Ray 3
+                if (showR3 && els.ray3.getAttribute("opacity") !== "0") {
+                    // Ray 3 exits parallel, so backtrace is horizontal
+                    // It connects lens exit point to image tip
+                    const slope3 = (centerY - objTipY) / (centerX - f - objX);
+                    const y_lens_hit = objTipY + slope3 * (centerX - objX);
+                    els.ray3_v.setAttribute("d", `M ${centerX},${y_lens_hit} L ${imgX},${imgTipY}`);
+                    els.ray3_v.style.display = 'block';
+                } else els.ray3_v.style.display = 'none';
+
+            } else {
+                els.ray1_v.style.display = 'none';
+                els.ray2_v.style.display = 'none';
+                els.ray3_v.style.display = 'none';
+            }
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', resizeCanvas);
+        fInput.addEventListener('input', updateSimulation);
+        doInput.addEventListener('input', updateSimulation);
+        hoInput.addEventListener('input', updateSimulation);
+        
+        toggleRay1.addEventListener('change', updateSimulation);
+        toggleRay2.addEventListener('change', updateSimulation);
+        toggleRay3.addEventListener('change', updateSimulation);
+
+        // Init
+        setTimeout(() => {
+            resizeCanvas();
+        }, 100);
+        
+    </script>
+</body>
+</html>
