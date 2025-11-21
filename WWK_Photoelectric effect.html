@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photoelectric Effect Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+        .readout-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .readout-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .readout-value {
+            font-family: monospace;
+            font-weight: bold;
+            color: #334155;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col items-center p-4 font-sans text-slate-800">
+
+    <header class="mb-6 text-center">
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">Photoelectric Effect Simulator</h1>
+        <p class="text-slate-600 text-sm md:text-base">Explore the particle nature of light and the emission of electrons</p>
+    </header>
+
+    <!-- Main Layout: 3 Columns -->
+    <main class="w-full max-w-7xl bg-white rounded-xl shadow-lg overflow-hidden flex flex-col lg:flex-row">
+        
+        <!-- LEFT COLUMN: Theory & Data -->
+        <div class="w-full lg:w-80 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 p-6 overflow-y-auto flex flex-col gap-6">
+            
+            <!-- Physics Data -->
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <h2 class="font-bold text-slate-700 border-b pb-2 mb-3 text-sm">Calculated Values</h2>
+                
+                <div class="readout-box">
+                    <span class="readout-label">Photon Energy (hf)</span>
+                    <span id="phEnergyDisplay" class="readout-value text-purple-600">-- eV</span>
+                </div>
+
+                <div class="readout-box">
+                    <span class="readout-label">Work Function (Φ)</span>
+                    <span id="workFuncDisplay" class="readout-value text-slate-600">-- eV</span>
+                </div>
+
+                <div class="readout-box">
+                    <span class="readout-label">Max Kinetic Energy</span>
+                    <span id="keDisplay" class="readout-value text-emerald-600">-- eV</span>
+                </div>
+
+                <div class="mt-3 text-xs text-slate-500">
+                    <p class="italic" id="emissionStatus">Status: Emitting</p>
+                </div>
+            </div>
+
+            <!-- I-V Graph -->
+            <div class="bg-white border border-slate-200 rounded-lg p-4 flex-grow">
+                <h2 class="font-bold text-slate-700 border-b pb-2 mb-3 text-sm">Theory: I-V Curve</h2>
+                
+                <!-- Graph Container -->
+                <div class="w-full h-48 relative bg-slate-50 border border-slate-100 rounded mb-2">
+                    <svg id="ivGraph" class="w-full h-full" viewBox="0 0 300 200">
+                        <!-- Grid Lines -->
+                        <defs>
+                            <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                                <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                            </pattern>
+                        </defs>
+                        <rect width="300" height="200" fill="url(#grid)" />
+
+                        <!-- Axes -->
+                        <!-- Y-Axis (Current) - Shifted left to x=80 -->
+                        <line x1="80" y1="10" x2="80" y2="190" stroke="#64748b" stroke-width="1.5" />
+                        <text x="85" y="20" font-size="10" fill="#64748b" font-weight="bold">Current (I)</text>
+                        
+                        <!-- X-Axis (Voltage) -->
+                        <line x1="10" y1="150" x2="290" y2="150" stroke="#64748b" stroke-width="1.5" />
+                        <text x="240" y="145" font-size="10" fill="#64748b" font-weight="bold">Voltage (V)</text>
+                        
+                        <!-- Axis Labels -->
+                        <text x="75" y="165" font-size="10" fill="#64748b" text-anchor="end">0</text>
+                        
+                        <!-- THEORETICAL CURVES (Static Reference) -->
+                        <!-- High Frequency (f3) - Blue -->
+                        <!-- Starts far left (High negative Vs) -->
+                        <path d="M 10 150 Q 40 150 50 100 Q 80 40 280 40" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.3" />
+                        <text x="10" y="165" font-size="9" fill="#3b82f6" font-weight="bold">Vs3</text>
+                        
+                        <!-- Medium Frequency (f2) - Green -->
+                        <path d="M 35 150 Q 55 150 65 100 Q 80 40 280 40" fill="none" stroke="#10b981" stroke-width="2" opacity="0.3" />
+                        <text x="35" y="165" font-size="9" fill="#10b981" font-weight="bold">Vs2</text>
+                        
+                        <!-- Low Frequency (f1) - Red -->
+                        <path d="M 60 150 Q 75 150 80 100 Q 80 40 280 40" fill="none" stroke="#ef4444" stroke-width="2" opacity="0.3" />
+                        <text x="60" y="165" font-size="9" fill="#ef4444" font-weight="bold">Vs1</text>
+
+                        <!-- Saturation Label -->
+                        <text x="200" y="35" font-size="9" fill="#64748b">Saturation Current</text>
+                    </svg>
+                </div>
+                
+                <div class="text-xs text-slate-500 leading-tight space-y-1">
+                    <p class="font-semibold text-slate-700">Legend:</p>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-500 opacity-50"></span>
+                        <span>High Freq (f3)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500 opacity-50"></span>
+                        <span>Med Freq (f2)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-red-500 opacity-50"></span>
+                        <span>Low Freq (f1)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MIDDLE COLUMN: Visualization Canvas -->
+        <div class="relative flex-grow bg-slate-900 h-[500px] lg:h-auto overflow-hidden">
+            <svg id="simCanvas" class="w-full h-full select-none">
+                <!-- Definitions -->
+                <defs>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                <!-- Background / Vacuum Tube -->
+                <g id="setup" transform="scale(0.9) translate(40, 20)">
+                    <!-- Tube -->
+                    <path d="M 150 150 L 150 350 C 150 400 200 420 350 420 C 500 420 550 400 550 350 L 550 150 C 550 100 500 80 350 80 C 200 80 150 100 150 150 Z" 
+                          fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+                    
+                    <!-- Opening for light -->
+                    <rect x="200" y="70" width="100" height="20" fill="#0f172a"/> 
+
+                    <!-- Plates -->
+                    <!-- Cathode (Target Metal) -->
+                    <rect id="cathode" x="180" y="180" width="20" height="140" fill="#94a3b8" stroke="#cbd5e1" stroke-width="2"/>
+                    <text x="170" y="340" fill="#94a3b8" font-size="12" text-anchor="end">Target</text>
+
+                    <!-- Anode (Collector) -->
+                    <rect id="anode" x="500" y="180" width="20" height="140" fill="#cbd5e1" stroke="#fff" stroke-width="2"/>
+                    <text x="530" y="340" fill="#cbd5e1" font-size="12">Collector</text>
+
+                    <!-- Circuit Wires -->
+                    <path d="M 190 310 L 190 480 L 315 480" stroke="#64748b" stroke-width="3" fill="none"/>
+                    <path d="M 510 310 L 510 375" stroke="#64748b" stroke-width="3" fill="none"/>
+                    <path d="M 510 425 L 510 480 L 385 480" stroke="#64748b" stroke-width="3" fill="none"/>
+                    
+                    <!-- Battery Symbol -->
+                    <g id="battery" transform="translate(350, 480)">
+                        <line x1="-35" y1="0" x2="-15" y2="0" stroke="#64748b" stroke-width="3"/>
+                        <line x1="15" y1="0" x2="35" y2="0" stroke="#64748b" stroke-width="3"/>
+                        <g id="batteryPlates"></g>
+                        <text id="voltageLabel" x="0" y="35" fill="#fff" font-size="14" text-anchor="middle" font-family="monospace">0.00 V</text>
+                    </g>
+
+                    <!-- Ammeter Graphic -->
+                    <g transform="translate(510, 400)">
+                        <circle cx="0" cy="0" r="25" fill="#1e293b" stroke="#64748b" stroke-width="3"/>
+                        <text x="0" y="-30" fill="#94a3b8" font-size="10" text-anchor="middle">Ammeter</text>
+                        <text id="ammeterValue" x="0" y="5" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle" font-family="monospace">0.00</text>
+                        <text x="0" y="16" fill="#64748b" font-size="9" text-anchor="middle">μA</text>
+                        <circle cx="0" cy="-25" r="3" fill="#64748b"/>
+                        <circle cx="0" cy="25" r="3" fill="#64748b"/>
+                    </g>
+                </g>
+
+                <!-- Light Source -->
+                <g id="lightSource" transform="scale(0.9) translate(320, 50) rotate(112)">
+                    <rect x="0" y="-15" width="60" height="30" rx="4" fill="#475569"/>
+                    <path d="M 60 -12 L 80 -20 L 80 20 L 60 12 Z" fill="#64748b"/>
+                </g>
+
+                <!-- Dynamic Layers -->
+                <g id="photonsLayer" transform="scale(0.9) translate(40, 20)"></g>
+                <g id="electronsLayer" transform="scale(0.9) translate(40, 20)"></g>
+            </svg>
+            
+            <div class="absolute top-4 left-4 text-white text-xs opacity-70 pointer-events-none">
+                <div>Simulation Speed: 1x</div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Controls -->
+        <div class="w-full lg:w-80 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 p-6 overflow-y-auto flex flex-col gap-6">
+            
+            <!-- Controls Section -->
+            <div>
+                <h2 class="font-bold text-slate-700 border-b pb-2 mb-4">Controls</h2>
+                
+                <!-- Target Material -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Target Material</label>
+                    <select id="materialSelect" class="w-full p-2 border border-slate-300 rounded bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="2.28">Sodium (Na) - 2.28 eV</option>
+                        <option value="2.9">Calcium (Ca) - 2.90 eV</option>
+                        <option value="4.3">Zinc (Zn) - 4.30 eV</option>
+                        <option value="4.7">Copper (Cu) - 4.70 eV</option>
+                        <option value="6.35">Platinum (Pt) - 6.35 eV</option>
+                        <option value="2.0">Unknown Metal A - 2.00 eV</option>
+                    </select>
+                </div>
+
+                <!-- Wavelength (Color) -->
+                <div class="mb-5">
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm font-medium text-slate-600">Wavelength</label>
+                        <span id="wlDisplay" class="text-sm font-bold text-purple-600">400 nm</span>
+                    </div>
+                    <div class="w-full h-2 rounded mb-2" style="background: linear-gradient(to right, #8b5cf6, #3b82f6, #10b981, #eab308, #ef4444, #7f1d1d);"></div>
+                    <input type="range" id="wlInput" min="100" max="850" value="400" step="1" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-400">
+                        <span>UV</span>
+                        <span>Visible</span>
+                        <span>IR</span>
+                    </div>
+                </div>
+
+                <!-- Intensity -->
+                <div class="mb-5">
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm font-medium text-slate-600">Intensity</label>
+                        <span id="intDisplay" class="text-sm font-bold text-slate-700">50%</span>
+                    </div>
+                    <input type="range" id="intInput" min="0" max="100" value="50" class="w-full">
+                </div>
+
+                <!-- Voltage -->
+                <div class="mb-2">
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm font-medium text-slate-600">Voltage</label>
+                        <span id="voltDisplay" class="text-sm font-bold text-blue-600">0.00 V</span>
+                    </div>
+                    <input type="range" id="voltInput" min="-8.00" max="8.00" value="0.00" step="0.1" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>Retarding (-8V)</span>
+                        <span>Accelerating (+8V)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Instruction -->
+            <div class="text-xs text-slate-400 leading-relaxed mt-auto">
+                <p class="font-bold">Quick Guide:</p>
+                <ul class="list-disc pl-4 space-y-1">
+                    <li><strong>Wavelength:</strong> Controls photon energy.</li>
+                    <li><strong>Intensity:</strong> Controls number of photons (Saturation Current).</li>
+                    <li><strong>Voltage:</strong> Accelerates or stops electrons.</li>
+                    <li>Observe the graph on the left to see the theoretical curve vs simulated values.</li>
+                </ul>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- Configuration & State ---
+        const state = {
+            wavelength: 400, // nm
+            intensity: 50,   // %
+            voltage: 0.0,    // V
+            workFunction: 2.28, // eV (Sodium default)
+            photonEnergy: 0, // eV
+            maxKE: 0,        // eV
+            stoppingPotential: 0, // Volts (magnitude)
+            current: 0,      // Arbitrary units
+            time: 0
+        };
+
+        // Physics Constants
+        const HC = 1240; // Planck's constant * c in eV*nm unit approximation
+
+        // DOM Elements
+        const els = {
+            svg: document.getElementById('simCanvas'),
+            photonsLayer: document.getElementById('photonsLayer'),
+            electronsLayer: document.getElementById('electronsLayer'),
+            wlInput: document.getElementById('wlInput'),
+            wlDisplay: document.getElementById('wlDisplay'),
+            intInput: document.getElementById('intInput'),
+            intDisplay: document.getElementById('intDisplay'),
+            voltInput: document.getElementById('voltInput'),
+            voltDisplay: document.getElementById('voltDisplay'),
+            voltageLabel: document.getElementById('voltageLabel'),
+            batteryPlates: document.getElementById('batteryPlates'),
+            matSelect: document.getElementById('materialSelect'),
+            phEnergyDisplay: document.getElementById('phEnergyDisplay'),
+            workFuncDisplay: document.getElementById('workFuncDisplay'),
+            keDisplay: document.getElementById('keDisplay'),
+            emissionStatus: document.getElementById('emissionStatus'),
+            ammeterValue: document.getElementById('ammeterValue'),
+            graphDot: document.getElementById('graphDot')
+        };
+
+        // Particle Systems
+        let photons = [];
+        let electrons = [];
+
+        // Utility: Wavelength to Hex Color
+        function wavelengthToColor(wavelength) {
+            let r, g, b;
+            if (wavelength >= 380 && wavelength < 440) {
+                r = -1 * (wavelength - 440) / (440 - 380); g = 0; b = 1;
+            } else if (wavelength >= 440 && wavelength < 490) {
+                r = 0; g = (wavelength - 440) / (490 - 440); b = 1;
+            } else if (wavelength >= 490 && wavelength < 510) {
+                r = 0; g = 1; b = -1 * (wavelength - 510) / (510 - 490);
+            } else if (wavelength >= 510 && wavelength < 580) {
+                r = (wavelength - 510) / (580 - 510); g = 1; b = 0;
+            } else if (wavelength >= 580 && wavelength < 645) {
+                r = 1; g = -1 * (wavelength - 645) / (645 - 580); b = 0;
+            } else if (wavelength >= 645 && wavelength <= 780) {
+                r = 1; g = 0; b = 0;
+            } else {
+                if (wavelength < 380) return "#888888"; 
+                if (wavelength > 780) return "#330000"; 
+                return "#000000";
+            }
+            return `rgb(${Math.floor(r * 255)}, ${Math.floor(g * 255)}, ${Math.floor(b * 255)})`;
+        }
+
+        // --- Simulation Logic ---
+
+        function updatePhysics() {
+            // 1. Calculate Photon Energy
+            state.photonEnergy = HC / state.wavelength;
+
+            // 2. Calculate Max Kinetic Energy & Stopping Potential
+            // KE = hf - Phi
+            const ke = state.photonEnergy - state.workFunction;
+            state.maxKE = ke > 0 ? ke : 0;
+            state.stoppingPotential = state.maxKE; // In Volts, magnitude equals Max KE in eV
+
+            // 3. Update UI Text
+            els.wlDisplay.textContent = `${state.wavelength} nm`;
+            els.wlDisplay.style.color = wavelengthToColor(state.wavelength);
+            els.intDisplay.textContent = `${state.intensity}%`;
+            
+            els.voltDisplay.textContent = `${parseFloat(state.voltage).toFixed(2)} V`;
+            els.voltDisplay.className = state.voltage >= 0 ? "text-sm font-bold text-blue-600" : "text-sm font-bold text-red-500";
+            
+            els.voltageLabel.textContent = `${Math.abs(state.voltage).toFixed(2)} V`;
+            
+            if (state.voltage >= 0) {
+                els.batteryPlates.innerHTML = `
+                    <line x1="-15" y1="-10" x2="-15" y2="10" stroke="#fff" stroke-width="2"/>
+                    <line x1="15" y1="-20" x2="15" y2="20" stroke="#fff" stroke-width="2"/>
+                `;
+            } else {
+                els.batteryPlates.innerHTML = `
+                    <line x1="-15" y1="-20" x2="-15" y2="20" stroke="#fff" stroke-width="2"/>
+                    <line x1="15" y1="-10" x2="15" y2="10" stroke="#fff" stroke-width="2"/>
+                `;
+            }
+
+            els.phEnergyDisplay.textContent = `${state.photonEnergy.toFixed(2)} eV`;
+            els.workFuncDisplay.textContent = `${state.workFunction.toFixed(2)} eV`;
+            els.keDisplay.textContent = `${state.maxKE.toFixed(2)} eV`;
+
+            if (state.maxKE > 0) {
+                els.emissionStatus.textContent = "Status: Emitting Electrons";
+                els.emissionStatus.className = "italic text-emerald-600";
+            } else {
+                els.emissionStatus.textContent = "Status: Below Threshold Frequency";
+                els.emissionStatus.className = "italic text-red-500";
+            }
+        }
+
+        function spawnPhoton() {
+            if (state.intensity <= 0) return;
+            
+            // Spawn probability proportional to intensity
+            if (Math.random() * 100 > state.intensity * 0.5) return; 
+
+            const angleRad = 112 * Math.PI / 180;
+            const startX = 280 + Math.cos(angleRad) * 60 + (Math.random() * 10 - 5);
+            const startY = 30 + Math.sin(angleRad) * 60 + (Math.random() * 10 - 5);
+            
+            const targetX = 190; 
+            const targetY = 180 + Math.random() * 140;
+
+            photons.push({
+                x: startX, y: startY,
+                tx: targetX, ty: targetY,
+                speed: 8, 
+                color: wavelengthToColor(state.wavelength),
+                dead: false
+            });
+        }
+
+        function spawnElectron(x, y) {
+            if (state.maxKE <= 0) return;
+
+            const actualKE = Math.random() * state.maxKE * 0.8 + state.maxKE * 0.2; 
+            const v0 = Math.sqrt(actualKE) * 2.5; 
+
+            electrons.push({
+                x: x, y: y,
+                vx: v0, 
+                vy: (Math.random() - 0.5) * v0 * 0.5, 
+                dead: false,
+                stopped: false
+            });
+        }
+
+        function animate() {
+            state.time++;
+            spawnPhoton();
+
+            // --- Update Photons ---
+            const photonsToRemove = [];
+            els.photonsLayer.innerHTML = '';
+
+            photons.forEach((p, i) => {
+                const dx = p.tx - p.x;
+                const dy = p.ty - p.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist < p.speed) {
+                    p.dead = true;
+                    spawnElectron(p.tx, p.ty);
+                } else {
+                    p.x += (dx / dist) * p.speed;
+                    p.y += (dy / dist) * p.speed;
+                }
+
+                if (p.dead) {
+                    photonsToRemove.push(i);
+                } else {
+                    const wave = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    wave.setAttribute("cx", p.x);
+                    wave.setAttribute("cy", p.y);
+                    wave.setAttribute("r", 3);
+                    wave.setAttribute("fill", p.color);
+                    wave.setAttribute("filter", "url(#glow)");
+                    els.photonsLayer.appendChild(wave);
+                }
+            });
+
+            for (let i = photonsToRemove.length - 1; i >= 0; i--) {
+                photons.splice(photonsToRemove[i], 1);
+            }
+
+            // --- Update Electrons ---
+            const electronsToRemove = [];
+            els.electronsLayer.innerHTML = '';
+            let electronsReachingAnode = 0;
+
+            const accel = state.voltage * 0.15; 
+
+            electrons.forEach((e, i) => {
+                if (e.dead) return;
+
+                e.vx += accel; 
+                e.x += e.vx;
+                e.y += e.vy;
+
+                // 1. Hit Anode
+                if (e.x >= 500) {
+                    e.dead = true;
+                    electronsReachingAnode++;
+                }
+                // 2. Turned back to Cathode
+                else if (e.x <= 180 && e.vx < 0) {
+                    e.dead = true;
+                }
+                // 3. Hit walls
+                else if (e.y < 150 || e.y > 420) {
+                    e.dead = true;
+                }
+                else {
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("transform", `translate(${e.x}, ${e.y})`);
+                    
+                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("r", 5);
+                    circle.setAttribute("fill", "#38bdf8");
+                    circle.setAttribute("stroke", "#0ea5e9");
+                    circle.setAttribute("stroke-width", "1");
+
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("dy", "2.5");
+                    text.setAttribute("text-anchor", "middle");
+                    text.setAttribute("fill", "white");
+                    text.setAttribute("font-size", "7");
+                    text.setAttribute("font-weight", "bold");
+                    text.textContent = "e⁻";
+
+                    g.appendChild(circle);
+                    g.appendChild(text);
+                    els.electronsLayer.appendChild(g);
+                }
+
+                if (e.dead) electronsToRemove.push(i);
+            });
+
+            for (let i = electronsToRemove.length - 1; i >= 0; i--) {
+                electrons.splice(electronsToRemove[i], 1);
+            }
+
+            // --- Calculate Current ---
+            const instantCurrent = electronsReachingAnode * 10; 
+            state.current = state.current * 0.9 + instantCurrent * 0.1;
+            els.ammeterValue.textContent = state.current.toFixed(2) + " μA";
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Event Listeners ---
+        els.wlInput.addEventListener('input', (e) => {
+            state.wavelength = parseInt(e.target.value);
+            updatePhysics();
+        });
+
+        els.intInput.addEventListener('input', (e) => {
+            state.intensity = parseInt(e.target.value);
+            updatePhysics();
+        });
+
+        els.voltInput.addEventListener('input', (e) => {
+            state.voltage = parseFloat(e.target.value);
+            updatePhysics();
+        });
+
+        els.matSelect.addEventListener('change', (e) => {
+            state.workFunction = parseFloat(e.target.value);
+            updatePhysics();
+        });
+
+        // Start
+        updatePhysics();
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+</html>
