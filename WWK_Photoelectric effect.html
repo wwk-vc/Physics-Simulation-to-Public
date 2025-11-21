@@ -115,7 +115,6 @@
                         
                         <!-- THEORETICAL CURVES (Static Reference) -->
                         <!-- High Frequency (f3) - Blue -->
-                        <!-- Starts far left (High negative Vs) -->
                         <path d="M 10 150 Q 40 150 50 100 Q 80 40 280 40" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.3" />
                         <text x="10" y="165" font-size="9" fill="#3b82f6" font-weight="bold">Vs3</text>
                         
@@ -329,8 +328,7 @@
             workFuncDisplay: document.getElementById('workFuncDisplay'),
             keDisplay: document.getElementById('keDisplay'),
             emissionStatus: document.getElementById('emissionStatus'),
-            ammeterValue: document.getElementById('ammeterValue'),
-            graphDot: document.getElementById('graphDot')
+            ammeterValue: document.getElementById('ammeterValue')
         };
 
         // Particle Systems
@@ -420,11 +418,25 @@
             const targetX = 190; 
             const targetY = 180 + Math.random() * 140;
 
+            // Calculate radius based on Wavelength (User Request: 400nm->7, 700nm->2)
+            // This makes the difference in visible light much more pronounced
+            let radius;
+            if (state.wavelength <= 400) {
+                radius = 7;
+            } else if (state.wavelength >= 700) {
+                radius = 2;
+            } else {
+                // Linear interpolation for visible light (400 to 700)
+                const t = (state.wavelength - 400) / 300; 
+                radius = 7 - (t * 5);
+            }
+
             photons.push({
                 x: startX, y: startY,
                 tx: targetX, ty: targetY,
                 speed: 8, 
                 color: wavelengthToColor(state.wavelength),
+                radius: radius,
                 dead: false
             });
         }
@@ -471,7 +483,7 @@
                     const wave = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                     wave.setAttribute("cx", p.x);
                     wave.setAttribute("cy", p.y);
-                    wave.setAttribute("r", 3);
+                    wave.setAttribute("r", p.radius);
                     wave.setAttribute("fill", p.color);
                     wave.setAttribute("filter", "url(#glow)");
                     els.photonsLayer.appendChild(wave);
