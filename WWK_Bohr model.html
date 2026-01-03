@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bohr Model Simulation</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MathJax for Equation Rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* Prevent body scroll, handle in cols */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+
+        .panel {
+            background-color: #1e293b; /* Slate 800 */
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .neon-text {
+            text-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
+        }
+
+        /* SVG Styles */
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .orbit {
+            fill: none;
+            stroke: #475569;
+            stroke-width: 1;
+            stroke-dasharray: 5, 5;
+            transition: stroke 0.3s;
+        }
+        .orbit.active {
+            stroke: #38bdf8;
+            stroke-width: 2;
+            stroke-dasharray: none;
+        }
+
+        .electron {
+            fill: #fbbf24; /* Amber 400 */
+            filter: drop-shadow(0 0 4px #fbbf24);
+            transition: fill 0.1s; /* Only animate color, not size */
+        }
+
+        .nucleus {
+            fill: #ef4444; /* Red 500 */
+            filter: drop-shadow(0 0 6px #ef4444);
+        }
+
+        .photon {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 4px currentColor);
+        }
+
+        /* Theory Graph Bars */
+        .energy-bar {
+            transition: width 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col lg:flex-row p-2 gap-2">
+
+    <!-- Left Column: Theory & Data -->
+    <div class="panel w-full lg:w-1/4 p-4 space-y-4">
+        <h2 class="text-xl font-bold text-sky-400 border-b border-slate-600 pb-2">Theory & Data</h2>
+        
+        <div class="text-sm space-y-2 text-slate-300">
+            <div class="bg-slate-900 p-2 rounded border border-slate-700">
+                <h3 class="font-semibold text-sky-300 mb-1">Energy Levels</h3>
+                <p>$$E_n = -13.6 \text{ eV} \frac{1}{n^2}$$</p>
+            </div>
+
+            <div class="bg-slate-900 p-2 rounded border border-slate-700">
+                <h3 class="font-semibold text-sky-300 mb-1">Photon Energy</h3>
+                <p>$$\Delta E = hf = E_i - E_f$$</p>
+                <p>$$\frac{1}{\lambda} = R \left( \frac{1}{n_f^2} - \frac{1}{n_i^2} \right)$$</p>
+            </div>
+        </div>
+
+        <!-- Live Data Display -->
+        <div class="mt-4">
+            <h3 class="text-lg font-semibold text-sky-400 mb-2">Live Data</h3>
+            <div class="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                <!-- Row 1: States -->
+                <div class="bg-slate-700 p-2 rounded">
+                    <span class="block text-slate-400 text-[10px] uppercase tracking-wide">Current Level</span>
+                    <span class="text-xl font-bold font-mono text-white" id="disp-ni">n = 1</span>
+                </div>
+                <div class="bg-slate-700 p-2 rounded">
+                    <span class="block text-slate-400 text-[10px] uppercase tracking-wide">Target / Input</span>
+                    <span class="text-xl font-bold font-mono text-white" id="disp-nf">n = 2</span>
+                </div>
+
+                <!-- Row 2: Context Description -->
+                <div class="col-span-2 bg-slate-800 border border-slate-600 p-1 rounded text-center">
+                    <span id="disp-context" class="text-sky-300 font-semibold italic text-xs">Preview: Transition n=1 &rarr; n=2</span>
+                </div>
+
+                <!-- Row 3: Energy & Wavelength -->
+                <div class="bg-slate-700 p-2 rounded col-span-2">
+                    <span class="block text-slate-400 text-[10px] uppercase tracking-wide">Photon Energy ($$\Delta E$$)</span>
+                    <span class="text-lg font-mono text-green-400" id="disp-energy">0.00 eV</span>
+                </div>
+                <div class="bg-slate-700 p-2 rounded col-span-2">
+                    <span class="block text-slate-400 text-[10px] uppercase tracking-wide">Photon Wavelength ($$\lambda$$)</span>
+                    <span class="text-lg font-mono text-yellow-400" id="disp-wavelength">-- nm</span>
+                    <div id="color-preview" class="h-2 w-full mt-1 rounded bg-gray-600"></div>
+                </div>
+                
+                <!-- Row 4: Result Status -->
+                <div class="bg-slate-700 p-2 rounded col-span-2">
+                    <span class="block text-slate-400 text-[10px] uppercase tracking-wide">Status</span>
+                    <span class="text-base font-bold text-white" id="disp-result">Ready</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mini Energy Level Diagram -->
+        <div class="flex-grow bg-slate-900 rounded border border-slate-700 p-2 relative min-h-[150px]" id="energy-diagram">
+            <div class="absolute top-0 left-0 text-[10px] text-slate-500 p-1">Energy Level Diagram</div>
+            <!-- Bars generated by JS -->
+        </div>
+    </div>
+
+    <!-- Middle Column: Simulation Canvas -->
+    <div class="panel w-full lg:w-1/2 relative bg-black overflow-hidden">
+        <div class="absolute top-2 left-2 z-10 bg-black/50 px-2 py-1 rounded text-xs text-slate-400">
+            Simulation View
+        </div>
+        <svg id="sim-svg" viewBox="-350 -350 700 700">
+            <defs>
+                <!-- Glow Filter -->
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            
+            <!-- Groups -->
+            <g id="orbits-group"></g>
+            <g id="photon-group"></g>
+            <circle r="8" cx="0" cy="0" class="nucleus"></circle>
+            <g id="electron-group">
+                <circle r="5" cx="0" cy="0" class="electron"></circle>
+            </g>
+        </svg>
+        
+        <!-- Overlay Message -->
+        <div id="sim-message" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-2 rounded text-sm font-bold text-white hidden pointer-events-none">
+            Transitioning...
+        </div>
+    </div>
+
+    <!-- Right Column: Controls -->
+    <div class="panel w-full lg:w-1/4 p-4 space-y-6">
+        <h2 class="text-xl font-bold text-sky-400 border-b border-slate-600 pb-2">Controls</h2>
+
+        <!-- Transitions -->
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm text-slate-400 mb-1">Standard Transitions</label>
+                <div class="flex gap-2">
+                    <button onclick="setMode('absorption')" id="btn-absorb" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition border border-transparent">Absorption (Up)</button>
+                    <button onclick="setMode('emission')" id="btn-emit" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition border border-transparent">Emission (Down)</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-sky-300 font-semibold mb-1">From ($$n_i$$)</label>
+                    <input type="number" id="input-ni" class="w-full bg-slate-900 border border-slate-600 text-white rounded p-2 text-center font-mono" value="1" min="1" max="6" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm text-pink-300 font-semibold mb-1">To ($$n_f$$)</label>
+                    <select id="input-nf" class="w-full bg-slate-900 border border-slate-600 text-white rounded p-2 text-center font-mono cursor-pointer">
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="btn-transition" onclick="startTransition()" class="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded shadow-lg shadow-sky-900/50 transition transform active:scale-95">
+                Excite Electron
+            </button>
+        </div>
+
+        <!-- Experimental Input -->
+        <div class="pt-4 border-t border-slate-600 space-y-3">
+            <div class="flex items-center justify-between">
+                 <h3 class="text-sm font-bold text-yellow-400 uppercase tracking-wider">Experimental Input</h3>
+                 <span class="text-[10px] bg-yellow-400/10 text-yellow-400 px-1 rounded">Try 10.2 or 12.09</span>
+            </div>
+           
+            <p class="text-xs text-slate-400">Fire a photon with specific energy. The atom will only absorb it if it matches a valid energy gap.</p>
+            
+            <div class="flex gap-2">
+                <input type="number" id="input-energy-manual" step="0.01" placeholder="eV (e.g. 10.2)" class="flex-1 bg-slate-900 border border-slate-600 text-white rounded p-2 font-mono text-sm">
+                <button onclick="checkAndFirePhoton()" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded text-sm transition transform active:scale-95">
+                    Fire
+                </button>
+            </div>
+        </div>
+
+        <!-- Speed Control -->
+        <div class="pt-4 border-t border-slate-600">
+            <label class="block text-sm text-slate-400 mb-2 flex justify-between">
+                <span>Simulation Speed</span>
+                <span id="speed-val">1x</span>
+            </label>
+            <input type="range" id="speed-range" min="0.2" max="3" step="0.1" value="1" class="w-full accent-sky-400 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <div class="mt-auto text-center text-slate-600 text-xs">
+            Interactive Bohr Model v1.4
+        </div>
+    </div>
+
+<script>
+    // --- Physics & Rendering Constants ---
+    const MAX_N = 6;
+    const BASE_RADIUS = 40; // Base radius for n=1
+    const RYDBERG_EV = 13.6;
+    const SPEED_BASE = 0.02; // Base angular velocity
+
+    // --- State ---
+    let state = {
+        n: 1,           // Current principal quantum number
+        targetN: 2,     // Target n
+        mode: 'absorption', // 'absorption' or 'emission'
+        angle: 0,       // Electron angle (radians)
+        simSpeed: 1.0,
+        isAnimating: false,
+        radius: BASE_RADIUS // Will be corrected in init()
+    };
+
+    // --- DOM Elements ---
+    const svg = document.getElementById('sim-svg');
+    const orbitsGroup = document.getElementById('orbits-group');
+    const electronGroup = document.getElementById('electron-group');
+    const electron = electronGroup.querySelector('.electron');
+    const photonGroup = document.getElementById('photon-group');
+    const inputNi = document.getElementById('input-ni');
+    const inputNf = document.getElementById('input-nf');
+    const btnTransition = document.getElementById('btn-transition');
+    const btnAbsorb = document.getElementById('btn-absorb');
+    const btnEmit = document.getElementById('btn-emit');
+    const dispNi = document.getElementById('disp-ni');
+    const dispNf = document.getElementById('disp-nf');
+    const dispContext = document.getElementById('disp-context');
+    const dispEnergy = document.getElementById('disp-energy');
+    const dispWavelength = document.getElementById('disp-wavelength');
+    const dispResult = document.getElementById('disp-result');
+    const colorPreview = document.getElementById('color-preview');
+    const energyDiagram = document.getElementById('energy-diagram');
+    const simMessage = document.getElementById('sim-message');
+
+    // --- Initialization ---
+    function init() {
+        state.radius = getRadius(state.n); // Fix: Ensure radius matches n at startup
+        drawOrbits();
+        drawEnergyDiagram();
+        updateUI();
+        requestAnimationFrame(animationLoop);
+        setMode('absorption'); // Default
+    }
+
+    // --- Visual Helpers ---
+    function getRadius(n) {
+        return 40 * n + 10; 
+    }
+
+    // --- Drawing ---
+    function drawOrbits() {
+        orbitsGroup.innerHTML = '';
+        for (let i = 1; i <= MAX_N; i++) {
+            const r = getRadius(i);
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", 0);
+            circle.setAttribute("cy", 0);
+            circle.setAttribute("r", r);
+            circle.setAttribute("class", `orbit orbit-${i}`);
+            orbitsGroup.appendChild(circle);
+            
+            // Label
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", r + 5);
+            text.setAttribute("y", 4);
+            text.setAttribute("fill", "#64748b");
+            text.setAttribute("font-size", "10");
+            text.setAttribute("font-family", "monospace");
+            text.textContent = `n=${i}`;
+            orbitsGroup.appendChild(text);
+        }
+    }
+
+    function drawEnergyDiagram() {
+        energyDiagram.innerHTML = '<div class="absolute top-0 left-0 text-[10px] text-slate-500 p-1">Energy Level Diagram</div>';
+        
+        for(let i=1; i<=MAX_N; i++) {
+            const E = -RYDBERG_EV / (i*i);
+            const pos = Math.abs(E / 13.6) * 80 + 10; 
+            
+            const line = document.createElement('div');
+            line.className = 'absolute w-full border-t border-slate-600 flex items-center';
+            line.style.top = `${pos}%`;
+            line.style.height = '1px';
+            
+            const label = document.createElement('span');
+            label.className = 'absolute right-1 text-[9px] text-slate-400 -mt-4';
+            label.innerText = `n=${i} (${E.toFixed(2)}eV)`;
+            line.appendChild(label);
+
+            line.id = `diagram-level-${i}`;
+            energyDiagram.appendChild(line);
+        }
+    }
+
+    function updateEnergyHighlight(n) {
+        for(let i=1; i<=MAX_N; i++) {
+            const el = document.getElementById(`diagram-level-${i}`);
+            if(el) {
+                if (i === n) {
+                    el.style.borderColor = '#38bdf8'; 
+                    el.querySelector('span').style.color = '#38bdf8';
+                    el.querySelector('span').style.fontWeight = 'bold';
+                } else {
+                    el.style.borderColor = '#475569';
+                    el.querySelector('span').style.color = '#94a3b8';
+                    el.querySelector('span').style.fontWeight = 'normal';
+                }
+            }
+        }
+    }
+
+    // --- Physics Calculations ---
+    function getEnergy(n) {
+        return -RYDBERG_EV / (n*n);
+    }
+
+    function getWavelength(n1, n2) {
+        const E1 = getEnergy(n1);
+        const E2 = getEnergy(n2);
+        const dE = Math.abs(E2 - E1);
+        if (dE === 0) return null;
+        const lambdaNm = 1239.8 / dE;
+        return { lambda: lambdaNm, dE: dE };
+    }
+
+    function wavelengthToColor(wavelength) {
+        if (wavelength < 10) return "#ffffff"; // Gamma/X-ray - White/Gray
+        if (wavelength < 380) return "#a855f7"; // UV
+        if (wavelength >= 380 && wavelength < 450) return "#8b5cf6";
+        if (wavelength >= 450 && wavelength < 495) return "#3b82f6";
+        if (wavelength >= 495 && wavelength < 570) return "#22c55e";
+        if (wavelength >= 570 && wavelength < 590) return "#eab308";
+        if (wavelength >= 590 && wavelength < 620) return "#f97316";
+        if (wavelength >= 620 && wavelength < 750) return "#ef4444";
+        return "#9f1239"; // IR
+    }
+
+    // --- Manual Photon Check ---
+    function checkAndFirePhoton() {
+        if (state.isAnimating) return;
+        
+        const inputVal = parseFloat(document.getElementById('input-energy-manual').value);
+        if (isNaN(inputVal) || inputVal <= 0) return;
+
+        const currentE = getEnergy(state.n);
+        const bindingEnergy = Math.abs(currentE);
+        
+        // Correct state.radius before starting animation logic
+        state.radius = getRadius(state.n);
+
+        const wavelength = 1239.8 / inputVal;
+        const color = wavelengthToColor(wavelength);
+        
+        // Update Display
+        dispContext.textContent = `Manual Input Check`;
+        dispNf.textContent = `Input`;
+        dispEnergy.textContent = inputVal.toFixed(2) + " eV";
+        dispWavelength.textContent = wavelength.toFixed(1) + " nm";
+        colorPreview.style.backgroundColor = color;
+        dispWavelength.style.color = color;
+
+        // 1. Check for Ionization (Energy > Binding Energy)
+        if (inputVal >= bindingEnergy) {
+            dispResult.textContent = `Ionization! (E > ${bindingEnergy.toFixed(2)} eV)`;
+            dispResult.className = "text-base font-bold text-red-400";
+            state.mode = 'ionization';
+            state.isAnimating = true;
+            animateIonization(color);
+            return;
+        }
+
+        // 2. Check Discrete Transitions
+        let matchFound = false;
+        let matchedTarget = -1;
+        
+        // Check against all higher levels
+        for(let i = state.n + 1; i <= MAX_N; i++) {
+            const targetE = getEnergy(i);
+            const diff = targetE - currentE;
+            
+            // Stricter Tolerance: 0.02 eV (Previously 0.1)
+            if (Math.abs(diff - inputVal) < 0.02) {
+                matchFound = true;
+                matchedTarget = i;
+                break;
+            }
+        }
+
+        if (matchFound) {
+            dispContext.textContent = `Matched Transition: n=${state.n} → n=${matchedTarget}`;
+            dispResult.textContent = `Absorbed (Match!)`;
+            dispResult.className = "text-base font-bold text-green-400";
+            state.targetN = matchedTarget;
+            state.mode = 'absorption';
+            state.isAnimating = true;
+            animateAbsorption(color);
+        } else {
+            dispContext.textContent = `No Transition Matches`;
+            dispResult.textContent = "Passed Through (Ignored)";
+            dispResult.className = "text-base font-bold text-slate-400";
+            state.isAnimating = true;
+            animatePassThrough(color);
+        }
+    }
+
+    // --- UI Interaction ---
+    function setMode(mode) {
+        state.mode = mode;
+        if (mode === 'absorption') {
+            btnAbsorb.classList.replace('bg-slate-700', 'bg-sky-600');
+            btnAbsorb.classList.add('ring-2', 'ring-sky-400');
+            btnEmit.classList.replace('bg-sky-600', 'bg-slate-700');
+            btnEmit.classList.remove('ring-2', 'ring-sky-400');
+            btnTransition.textContent = "Absorb Photon & Jump Up";
+            btnTransition.classList.replace('bg-pink-600', 'bg-sky-600');
+            btnTransition.classList.replace('hover:bg-pink-500', 'hover:bg-sky-500');
+        } else {
+            btnEmit.classList.replace('bg-slate-700', 'bg-pink-600');
+            btnEmit.classList.add('ring-2', 'ring-pink-400');
+            btnAbsorb.classList.replace('bg-sky-600', 'bg-slate-700');
+            btnAbsorb.classList.remove('ring-2', 'ring-pink-400');
+            btnTransition.textContent = "Emit Photon & Drop Down";
+            btnTransition.classList.replace('bg-sky-600', 'bg-pink-600');
+            btnTransition.classList.replace('hover:bg-sky-500', 'hover:bg-pink-500');
+        }
+        updateUI();
+    }
+
+    function updateUI() {
+        // Update Standard Controls
+        inputNi.value = state.n;
+        
+        // ** UPDATED: Display current level in Left Panel **
+        dispNi.textContent = "n = " + state.n;
+
+        inputNf.innerHTML = '';
+        let targets = [];
+        if (state.mode === 'absorption') {
+            for(let i = state.n + 1; i <= MAX_N; i++) targets.push(i);
+        } else {
+            for(let i = 1; i < state.n; i++) targets.push(i);
+        }
+
+        if (targets.length === 0) {
+            const opt = document.createElement('option');
+            opt.text = state.mode === 'absorption' ? "Max Level" : "Ground State";
+            inputNf.appendChild(opt);
+            inputNf.disabled = true;
+            btnTransition.disabled = true;
+            btnTransition.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            // Reset preview if no valid moves
+            dispNf.textContent = "--";
+            dispContext.textContent = "No transitions available";
+            dispEnergy.textContent = "--";
+            dispWavelength.textContent = "--";
+            dispResult.textContent = "Limit Reached";
+        } else {
+            targets.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                inputNf.appendChild(opt);
+            });
+            inputNf.disabled = false;
+            btnTransition.disabled = false;
+            btnTransition.classList.remove('opacity-50', 'cursor-not-allowed');
+            
+            // Recalculate Standard Preview
+            calculatePreview();
+        }
+        updateEnergyHighlight(state.n);
+        
+        document.querySelectorAll('.orbit').forEach(el => el.classList.remove('active'));
+        const activeOrbit = document.querySelector(`.orbit-${state.n}`);
+        if(activeOrbit) activeOrbit.classList.add('active');
+    }
+
+    function calculatePreview() {
+        const nCurrent = state.n;
+        const nTarget = parseInt(inputNf.value);
+        
+        if (!nTarget) return;
+        
+        // ** UPDATED: Display Target in Left Panel **
+        dispNf.textContent = "n = " + nTarget;
+        dispContext.textContent = `Preview: Transition n=${nCurrent} → n=${nTarget}`;
+
+        const result = getWavelength(nCurrent, nTarget);
+        if (result) {
+            dispEnergy.textContent = result.dE.toFixed(2) + " eV";
+            dispWavelength.textContent = result.lambda.toFixed(1) + " nm";
+            const color = wavelengthToColor(result.lambda);
+            colorPreview.style.backgroundColor = color;
+            dispWavelength.style.color = color;
+            
+            let nLower = Math.min(nCurrent, nTarget);
+            let series = nLower === 1 ? "Lyman (UV)" : (nLower === 2 ? "Balmer (Visible)" : "Paschen (IR)");
+            dispResult.textContent = `Series: ${series}`;
+            dispResult.className = "text-base font-bold text-white";
+        }
+    }
+
+    inputNf.addEventListener('change', calculatePreview);
+
+    document.getElementById('speed-range').addEventListener('input', (e) => {
+        state.simSpeed = parseFloat(e.target.value);
+        document.getElementById('speed-val').textContent = state.simSpeed.toFixed(1) + "x";
+    });
+
+    // --- Animation System ---
+    function startTransition() {
+        if (state.isAnimating) return;
+        
+        const target = parseInt(inputNf.value);
+        if (!target || target === state.n) return;
+
+        // Correct state.radius before starting animation logic
+        state.radius = getRadius(state.n);
+
+        state.isAnimating = true;
+        state.targetN = target;
+        
+        const calc = getWavelength(state.n, state.targetN);
+        const color = wavelengthToColor(calc.lambda);
+
+        if (state.mode === 'absorption') {
+            animateAbsorption(color);
+        } else {
+            animateEmission(color);
+        }
+    }
+
+    function createPhoton(color) {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("class", "photon");
+        path.setAttribute("stroke", color);
+        let d = "";
+        const wavelength = 20;
+        const amplitude = 6;
+        const length = 300;
+        for(let x=0; x<=length; x+=5) {
+            const y = Math.sin(x / wavelength * Math.PI * 2) * amplitude;
+            d += (x===0 ? "M" : "L") + `${x} ${y}`;
+        }
+        path.setAttribute("d", d);
+        photonGroup.innerHTML = '';
+        photonGroup.appendChild(path);
+        return path;
+    }
+
+    function animateIonization(color) {
+        // 1. Photon hits electron
+        const photon = createPhoton(color);
+        const r = getRadius(state.n);
+        const ex = Math.cos(state.angle) * r;
+        const ey = Math.sin(state.angle) * r;
+        
+        let progress = 0;
+        const durationIn = 800 / state.simSpeed; // Faster hit
+        const animStart = performance.now();
+        
+        // Phase 1: Absorption
+        function stepIn(now) {
+            const elapsed = now - animStart;
+            progress = Math.min(elapsed / durationIn, 1);
+            
+            const curX = -400 + (400 + ex) * progress;
+            photonGroup.setAttribute("transform", `translate(${curX}, ${ey})`);
+
+            if (progress < 1) {
+                requestAnimationFrame(stepIn);
+            } else {
+                photonGroup.innerHTML = '';
+                // Flash
+                electron.setAttribute("fill", "#ffffff");
+                
+                // Phase 2: Electron flies off
+                animateElectronEscape(ex, ey);
+            }
+        }
+        requestAnimationFrame(stepIn);
+    }
+
+    function animateElectronEscape(startX, startY) {
+        const escapeDistance = 600;
+        const durationOut = 1000 / state.simSpeed;
+        const startOut = performance.now();
+        const angle = Math.atan2(startY, startX); // Fly radially outward
+        
+        function stepOut(now) {
+            const elapsed = now - startOut;
+            const p = Math.min(elapsed / durationOut, 1);
+            
+            // Move linearly outward
+            const currentDist = Math.sqrt(startX*startX + startY*startY) + escapeDistance * p;
+            const curX = Math.cos(angle) * currentDist;
+            const curY = Math.sin(angle) * currentDist;
+            
+            electronGroup.setAttribute("transform", `translate(${curX}, ${curY})`);
+
+            if (p < 1) {
+                requestAnimationFrame(stepOut);
+            } else {
+                // Reset Simulation
+                showMessage("Atom Ionized! Resetting...");
+                setTimeout(() => {
+                    state.n = 1;
+                    state.radius = getRadius(1);
+                    state.angle = 0;
+                    state.isAnimating = false;
+                    electron.setAttribute("fill", "#fbbf24");
+                    updateUI();
+                }, 1500);
+            }
+        }
+        requestAnimationFrame(stepOut);
+    }
+
+    function animatePassThrough(color) {
+        // Photon flies straight through without stopping
+        createPhoton(color);
+        const r = getRadius(state.n);
+        
+        let progress = 0;
+        const duration = 1500 / state.simSpeed;
+        const animStart = performance.now();
+        
+        function step(now) {
+            const elapsed = now - animStart;
+            progress = Math.min(elapsed / duration, 1);
+            
+            // Start far left (-400), End far right (+400)
+            const curX = -400 + (800) * progress;
+            const curY = -40; // Offset slightly to show it missing nucleus
+            
+            photonGroup.setAttribute("transform", `translate(${curX}, ${curY})`);
+
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            } else {
+                photonGroup.innerHTML = '';
+                state.isAnimating = false;
+            }
+        }
+        showMessage("Transparency: No Interaction");
+        requestAnimationFrame(step);
+    }
+
+    function animateAbsorption(color) {
+        const photon = createPhoton(color);
+        const r = getRadius(state.n);
+        const ex = Math.cos(state.angle) * r;
+        const ey = Math.sin(state.angle) * r;
+        
+        let progress = 0;
+        const duration = 1000 / state.simSpeed;
+        const animStart = performance.now();
+        
+        function step(now) {
+            const elapsed = now - animStart;
+            progress = Math.min(elapsed / duration, 1);
+            
+            const curX = -400 + (400 + ex) * progress;
+            photonGroup.setAttribute("transform", `translate(${curX}, ${ey})`);
+
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            } else {
+                photonGroup.innerHTML = '';
+                animateOrbitChange(state.n, state.targetN);
+            }
+        }
+        requestAnimationFrame(step);
+    }
+
+    function animateEmission(color) {
+        animateOrbitChange(state.n, state.targetN, () => {
+            const r = getRadius(state.targetN);
+            const ex = Math.cos(state.angle) * r;
+            const ey = Math.sin(state.angle) * r;
+            
+            createPhoton(color);
+            
+            let progress = 0;
+            const duration = 1000 / state.simSpeed;
+            const animStart = performance.now();
+            
+            function step(now) {
+                const elapsed = now - animStart;
+                progress = Math.min(elapsed / duration, 1);
+                
+                const curX = ex + (400) * progress;
+                photonGroup.setAttribute("transform", `translate(${curX}, ${ey})`);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    photonGroup.innerHTML = '';
+                    state.isAnimating = false;
+                    updateUI();
+                }
+            }
+            requestAnimationFrame(step);
+        });
+    }
+
+    function animateOrbitChange(nFrom, nTo, callback) {
+        const flashDuration = 200; 
+        
+        // Flash white, BUT DO NOT CHANGE RADIUS (user requirement)
+        electron.setAttribute("fill", "#ffffff");
+        // No r attribute change here
+
+        setTimeout(() => {
+            state.n = nTo;
+            state.radius = getRadius(nTo);
+            
+            electron.setAttribute("fill", "#fbbf24");
+            
+            state.isAnimating = false; 
+            
+            if(callback) {
+                state.isAnimating = true; 
+                callback();
+            } else {
+                updateUI();
+            }
+        }, flashDuration);
+    }
+
+    function showMessage(text) {
+        simMessage.textContent = text;
+        simMessage.classList.remove('hidden');
+        setTimeout(() => simMessage.classList.add('hidden'), 2000);
+    }
+
+    // --- Main Loop ---
+    let lastTime = 0;
+    function animationLoop(time) {
+        const dt = time - lastTime;
+        lastTime = time;
+
+        const currentScale = state.radius / BASE_RADIUS; 
+        const angularSpeed = (SPEED_BASE / Math.pow(currentScale, 1.5)) * state.simSpeed;
+
+        state.angle += angularSpeed * (dt / 16); 
+        if (state.angle > Math.PI * 2) state.angle -= Math.PI * 2;
+
+        const r = state.isAnimating ? state.radius : getRadius(state.n);
+        const x = Math.cos(state.angle) * r;
+        const y = Math.sin(state.angle) * r;
+        
+        electronGroup.setAttribute("transform", `translate(${x}, ${y})`);
+
+        requestAnimationFrame(animationLoop);
+    }
+
+    init();
+
+</script>
+</body>
+</html>
